@@ -1,6 +1,6 @@
 [Unit]
 Description=jobwish applier (apply queued jobs from scout)
-After=network-online.target cloud-init.target scout.service
+After=network-online.target cloud-init-network.service scout.service
 Wants=network-online.target
 
 [Service]
