@@ -2,8 +2,10 @@
 # Pinned by digest. Bump the tag and digest together.
 ARG BASE_IMAGE=ghcr.io/iamyaash/hummingbird-rpi5:unstable@sha256:ba63af813f1fcd33c0452744446b03500a96f36ce39517ab7020b227baa890f3
 
-ARG OPENCODE_VERSION=1.19.6
-ARG OPENCODE_SHA256=5b68c1f4c5e75b4134e664cc8f36d634d64208d4fcfe5bcf3b48bab699c2dbac
+# scout and applier use @opencode/client 2.x, which runs `opencode serve --service`.
+# opencode 1.x has no --service flag, so keep this on 2.x.
+ARG OPENCODE_VERSION=2.3.2
+ARG OPENCODE_SHA256=9d10185acdb72336e086e699ca363a6065f410fd3c1caed0dc8046e95ac06ccb
 
 FROM registry.fedoraproject.org/fedora:44 AS opencode
 ARG OPENCODE_VERSION
