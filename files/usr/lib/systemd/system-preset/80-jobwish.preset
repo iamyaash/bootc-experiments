@@ -1,0 +1,2 @@
+enable scout.service
+enable applier.service

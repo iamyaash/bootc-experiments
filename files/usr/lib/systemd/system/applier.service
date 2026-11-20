@@ -1,0 +1,20 @@
+[Unit]
+Description=jobwish applier (apply queued jobs from scout)
+After=network-online.target cloud-init.target scout.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hummingbird
+Group=hummingbird
+Environment=HOME=/home/hummingbird
+Environment=APPLIER_DATA=/home/hummingbird/.local/share/jobwish-applier
+Environment=SCOUT_URL=http://127.0.0.1:4545
+Environment=PATH=/home/hummingbird/.local/bin:/usr/bin:/bin
+ExecStartPre=/usr/bin/mkdir -p ${APPLIER_DATA}
+ExecStart=/usr/bin/applier run
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

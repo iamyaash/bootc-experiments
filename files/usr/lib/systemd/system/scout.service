@@ -1,0 +1,21 @@
+[Unit]
+Description=jobwish scout server
+# The hummingbird user is created by cloud-init on first boot
+After=network-online.target cloud-init.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hummingbird
+Group=hummingbird
+Environment=HOME=/home/hummingbird
+Environment=JOBWISH_DATA=/home/hummingbird/.local/share/jobwish
+Environment=JOBWISH_HOST=0.0.0.0
+Environment=PATH=/home/hummingbird/.local/bin:/usr/bin:/bin
+ExecStartPre=/usr/bin/mkdir -p ${JOBWISH_DATA}
+ExecStart=/usr/bin/scout serve --port 4545
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
