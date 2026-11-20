@@ -1,0 +1,125 @@
+name: Build image
+
+# Manual trigger only. Builds on a native arm64 runner, pushes the bootc image
+# to GHCR and uploads a flashable SD card image as an artifact.
+#
+# scout and applier aren't in git. They're pulled from a release in this repo
+# (tag "binaries" by default) holding scout-linux-arm64 and applier-linux-arm64.
+
+on:
+  workflow_dispatch:
+    inputs:
+      binaries_tag:
+        description: Release tag that holds the scout and applier binaries
+        default: binaries
+      sd_image:
+        description: Also build the SD card image
+        type: boolean
+        default: true
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  CHANNEL: unstable
+  IMAGE: localhost/bootc-experiments-rpi5:unstable
+  REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/bootc-experiments-rpi5
+  DISK_SIZE: 8G
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+
+      # Only for scripts/build-sd-image.sh. The base image itself comes from GHCR.
+      - uses: actions/checkout@v5
+        with:
+          repository: iamyaash/hummingbird-rpi5
+          path: upstream
+
+      - name: Set tags
+        run: |
+          echo "DATE=$(date -u +%Y%m%d)" >> "$GITHUB_ENV"
+          echo "SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          echo "REGISTRY_IMAGE=${REGISTRY_IMAGE,,}" >> "$GITHUB_ENV"
+          echo "TARGET_IMGREF=${REGISTRY_IMAGE,,}:$CHANNEL" >> "$GITHUB_ENV"
+
+      - name: Fetch binaries
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p bin
+          gh release download "${{ inputs.binaries_tag }}" -R "$GITHUB_REPOSITORY" -D bin \
+            -p scout-linux-arm64 -p applier-linux-arm64
+          file bin/* | tee /dev/stderr | grep -c 'ARM aarch64' | grep -qx 2
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+          sudo docker image prune -af || true
+          df -h /
+
+      - name: Install disk tools
+        if: inputs.sd_image
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xfsprogs dosfstools parted
+
+      - name: Build bootc image
+        run: |
+          sudo podman build \
+            --security-opt=label=disable \
+            --cap-add=all \
+            --device /dev/fuse \
+            --label "org.opencontainers.image.version=$CHANNEL-$DATE-$SHA" \
+            --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
+            -t "$IMAGE" \
+            -f Containerfile .
+
+      - name: Check image contents
+        run: |
+          sudo podman run --rm "$IMAGE" sh -c '
+            set -e
+            opencode --version
+            ls -l /usr/bin/scout /usr/bin/applier
+            systemctl is-enabled scout.service applier.service' | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Push to GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$GH_TOKEN" | sudo podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+          TAGS="$CHANNEL-$DATE-$SHA $CHANNEL-$SHA"
+          [ "$GITHUB_REF" = refs/heads/main ] && TAGS="$TAGS $CHANNEL"
+          for t in $TAGS; do
+            sudo podman tag "$IMAGE" "$REGISTRY_IMAGE:$t"
+            sudo podman push "$REGISTRY_IMAGE:$t"
+            echo "Pushed \`$REGISTRY_IMAGE:$t\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Assemble SD card image
+        if: inputs.sd_image
+        run: |
+          NAME="bootc-experiments-rpi5-$CHANNEL-$DATE-$SHA.raw"
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+          sudo upstream/scripts/build-sd-image.sh "$IMAGE" "$TARGET_IMGREF" "$RUNNER_TEMP/$NAME" "$DISK_SIZE"
+          sudo xz -T0 -3 "$RUNNER_TEMP/$NAME"
+          sudo chown "$(id -u)" "$RUNNER_TEMP/$NAME.xz"
+          ls -lh "$RUNNER_TEMP/$NAME.xz"
+
+      - name: Upload SD card image
+        if: inputs.sd_image
+        uses: actions/upload-artifact@v5
+        with:
+          name: bootc-experiments-rpi5-${{ env.CHANNEL }}-sdcard-image
+          path: ${{ runner.temp }}/${{ env.NAME }}.xz
+          retention-days: 14
+          if-no-files-found: error
+          compression-level: 0
