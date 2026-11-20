@@ -29,6 +29,12 @@ COPY files/usr/lib/systemd/system/ /usr/lib/systemd/system/
 COPY files/usr/lib/systemd/system-preset/80-jobwish.preset /usr/lib/systemd/system-preset/
 COPY files/etc/profile.d/jobwish.sh /etc/profile.d/
 
+# Open scout's UI port to the LAN. firewall-offline-cmd writes /etc/firewalld/zones/,
+# which becomes the image default for /etc.
+COPY files/usr/lib/firewalld/services/jobwish-scout.xml /usr/lib/firewalld/services/
+RUN firewall-offline-cmd --zone=public --add-service=jobwish-scout \
+    && firewall-offline-cmd --zone=public --list-services | grep -qw jobwish-scout
+
 RUN systemctl preset scout.service applier.service \
     && systemctl is-enabled scout.service applier.service
 
