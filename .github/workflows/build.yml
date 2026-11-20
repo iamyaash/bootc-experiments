@@ -3,8 +3,8 @@ name: Build image
 # Manual trigger only. Builds on a native arm64 runner, pushes the bootc image
 # to GHCR and uploads a flashable SD card image as an artifact.
 #
-# scout and applier aren't in git. They're pulled from a release in this repo
-# (tag "binaries" by default) holding scout-linux-arm64 and applier-linux-arm64.
+# scout and applier live in a GitHub release (tag "binaries" by default), not in git,
+# so the repo stays small. Releases store big files for free.
 
 on:
   workflow_dispatch:
