@@ -8,11 +8,15 @@
 
 scout is about 130 MB. Committing it would mean every clone drags that of history around forever, and git would quietly judge us. So it lives in the [`binaries` release](../../releases/tag/binaries) instead. Releases hold big files for free and stay out of the history.
 
-The build workflow downloads it from that release. To ship a new build, replace the asset there:
+The build workflow downloads it from that release. Every scout build has the same file name and reports version `0.1.0`, so `scout.sha256` in this repo pins the exact build. CI, the image build and `scripts/build.sh` all fail if the binary doesn't match it.
+
+To ship a new scout build, run:
 
 ```
-gh release upload binaries bin/scout-linux-arm64 --clobber
+scripts/release.sh   # defaults to ../../gitlab/jobwish/dist/scout-linux-arm64
 ```
+
+It copies the binary to `bin/`, commits the new checksum, uploads the asset, runs the build and checks that `:unstable` on GHCR has that exact scout. On the Pi, `sha256sum /usr/bin/scout` or `cat /usr/share/jobwish/scout.sha256` shows which build is running.
 
 ### In CI
 

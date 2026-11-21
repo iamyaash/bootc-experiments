@@ -23,6 +23,10 @@ FROM ${BASE_IMAGE}
 # /usr/local is a link into /var on bootc, so anything put there at build time
 # doesn't ship. Install to /usr/bin instead.
 COPY --chmod=0755 bin/scout-linux-arm64 /usr/bin/scout
+# scout.sha256 pins the exact scout build. Every build has the same file name and
+# version string, so the checksum is the only way to tell them apart.
+COPY scout.sha256 /usr/share/jobwish/scout.sha256
+RUN cd /usr/bin && sed 's/scout-linux-arm64$/scout/' /usr/share/jobwish/scout.sha256 | sha256sum -c -
 COPY --from=opencode --chmod=0755 /out/opencode /usr/bin/opencode
 
 COPY files/usr/lib/systemd/system/ /usr/lib/systemd/system/

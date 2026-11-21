@@ -8,6 +8,8 @@ UPSTREAM="${1:-../hummingbird-rpi5}"
 TAG=localhost/bootc-experiments-rpi5:latest
 
 test -f bin/scout-linux-arm64 || { echo "missing bin/scout-linux-arm64" >&2; exit 1; }
+(cd bin && sha256sum -c ../scout.sha256) \
+    || { echo "bin/scout-linux-arm64 is not the build in scout.sha256; run scripts/release.sh" >&2; exit 1; }
 test -x "$UPSTREAM/scripts/build-sd-image.sh" \
     || { echo "clone https://github.com/iamyaash/hummingbird-rpi5 to $UPSTREAM" >&2; exit 1; }
 

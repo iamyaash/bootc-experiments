@@ -58,6 +58,8 @@ jobs:
           mkdir -p bin
           gh release download "${{ inputs.binaries_tag }}" -R "$GITHUB_REPOSITORY" -D bin \
             -p scout-linux-arm64
+          # Fail if the release asset isn't the build pinned in scout.sha256.
+          (cd bin && sha256sum -c ../scout.sha256)
           file bin/* | tee /dev/stderr | grep -c 'ARM aarch64' | grep -qx 1
 
       - name: Free disk space
@@ -79,6 +81,7 @@ jobs:
             --cap-add=all \
             --device /dev/fuse \
             --label "org.opencontainers.image.version=$CHANNEL-$DATE-$SHA" \
+            --label "io.github.iamyaash.scout.sha256=$(cut -d" " -f1 scout.sha256)" \
             --label "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" \
             -t "$IMAGE" \
             -f Containerfile .
@@ -89,6 +92,7 @@ jobs:
             set -e
             opencode --version
             ls -l /usr/bin/scout
+            sha256sum /usr/bin/scout
             test ! -e /usr/bin/applier
             systemctl is-enabled scout.service' | tee -a "$GITHUB_STEP_SUMMARY"
 
