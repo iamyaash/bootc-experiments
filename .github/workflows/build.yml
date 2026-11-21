@@ -3,14 +3,14 @@ name: Build image
 # Manual trigger only. Builds on a native arm64 runner, pushes the bootc image
 # to GHCR and uploads a flashable SD card image as an artifact.
 #
-# scout and applier live in a GitHub release (tag "binaries" by default), not in git,
+# scout lives in a GitHub release (tag "binaries" by default), not in git,
 # so the repo stays small. Releases store big files for free.
 
 on:
   workflow_dispatch:
     inputs:
       binaries_tag:
-        description: Release tag that holds the scout and applier binaries
+        description: Release tag that holds the scout binary
         default: binaries
       sd_image:
         description: Also build the SD card image
@@ -57,8 +57,8 @@ jobs:
         run: |
           mkdir -p bin
           gh release download "${{ inputs.binaries_tag }}" -R "$GITHUB_REPOSITORY" -D bin \
-            -p scout-linux-arm64 -p applier-linux-arm64
-          file bin/* | tee /dev/stderr | grep -c 'ARM aarch64' | grep -qx 2
+            -p scout-linux-arm64
+          file bin/* | tee /dev/stderr | grep -c 'ARM aarch64' | grep -qx 1
 
       - name: Free disk space
         run: |
@@ -88,8 +88,9 @@ jobs:
           sudo podman run --rm "$IMAGE" sh -c '
             set -e
             opencode --version
-            ls -l /usr/bin/scout /usr/bin/applier
-            systemctl is-enabled scout.service applier.service' | tee -a "$GITHUB_STEP_SUMMARY"
+            ls -l /usr/bin/scout
+            test ! -e /usr/bin/applier
+            systemctl is-enabled scout.service' | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Push to GHCR
         env:

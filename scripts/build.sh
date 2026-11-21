@@ -7,9 +7,7 @@ cd "$(dirname "$0")/.."
 UPSTREAM="${1:-../hummingbird-rpi5}"
 TAG=localhost/bootc-experiments-rpi5:latest
 
-for b in scout applier; do
-    test -f "bin/$b-linux-arm64" || { echo "missing bin/$b-linux-arm64" >&2; exit 1; }
-done
+test -f bin/scout-linux-arm64 || { echo "missing bin/scout-linux-arm64" >&2; exit 1; }
 test -x "$UPSTREAM/scripts/build-sd-image.sh" \
     || { echo "clone https://github.com/iamyaash/hummingbird-rpi5 to $UPSTREAM" >&2; exit 1; }
 

@@ -4,6 +4,8 @@ Description=jobwish scout server
 # which runs after multi-user.target and makes an ordering cycle.
 After=network-online.target cloud-init-network.service
 Wants=network-online.target
+# Keep retrying forever instead of giving up after a burst of failures.
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
@@ -15,7 +17,7 @@ Environment=JOBWISH_HOST=0.0.0.0
 Environment=PATH=/home/hummingbird/.local/bin:/usr/bin:/bin
 ExecStartPre=/usr/bin/mkdir -p ${JOBWISH_DATA}
 ExecStart=/usr/bin/scout serve --port 4545
-Restart=on-failure
+Restart=always
 RestartSec=5
 
 [Install]
