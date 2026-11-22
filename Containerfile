@@ -1,7 +1,7 @@
 # hummingbird-rpi5 with scout and opencode on top. The applier runs on a desktop
 # machine with a display and connects to scout over the LAN.
 # Pinned by digest. Bump the tag and digest together.
-ARG BASE_IMAGE=ghcr.io/iamyaash/hummingbird-rpi5:unstable-f793d22@sha256:6cfd5bb0fcf704b708822c1bc531871e113607d1f7c6f1451ff6a1303ede6981
+ARG BASE_IMAGE=ghcr.io/iamyaash/hummingbird-rpi5:unstable@sha256:1344e294ff6e2d33a9c4ff3581068aa06649bf2ece0eb1857582b9d7627596d9
 
 # scout uses @opencode/client 2.x, which runs `opencode serve --service`.
 # opencode 1.x has no --service flag, so keep this on 2.x.
